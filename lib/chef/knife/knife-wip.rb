@@ -26,7 +26,7 @@ module KnifeWip
       node = Chef::Node.load name
         (node.tags << wip_tag).uniq!
       node.save
-      ui.info("Created WIP #{wip_tag} for node #{name}.")
+      ui.info("Created WIP \"#{wip_tag}\" for node #{name}.")
     end
 
   end
