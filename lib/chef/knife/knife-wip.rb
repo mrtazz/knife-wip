@@ -33,8 +33,33 @@ module KnifeWip
 
   class NodeUnwip < Chef::Knife
 
+    deps do
+      require 'chef/node'
+    end
+
+    banner "knife node unwip NODE DESCRIPTION"
+
     def run
-      puts "lol unWIP"
+      name = @name_args[0]
+      description = @name_args[1..-1].join(" ")
+
+      if name.nil? || description.nil? || description.empty?
+        show_usage
+        ui.fatal("You must specify a node name and a WIP description.")
+        exit 1
+      end
+
+      node = Chef::Node.load name
+      tag = "wip:#{ENV["USER"]}:#{description}"
+      success = node.tags.delete(tag).nil? ? false : true
+
+      node.save
+      if success == false
+        message = "Nothing has changed. The WIP description requested to be deleted does not exist."
+      else
+        message = "Deleted WIP description \"#{tag}\" for node #{name}."
+      end
+      ui.info(message)
     end
 
   end
