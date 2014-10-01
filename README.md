@@ -12,15 +12,37 @@ tags][tags] to track who is working on which servers. This way it supports all
 the great ways of searching for tags and testing for them in Chef recipe and
 doesn't rely on any external setup.
 
+
+## Tag format
+In order to provide an easy and standardized way to retrieve information and
+provide everyone with the maximum amount of information the tag for WIP looks
+like this:
+
+```
+wip:[USERNAME]:[provided description]
+```
+
+This should make it easy to immediately see who has added the WIP tag and what
+they are working on.
+
+
 ## Usage
 
 ```
-knife node wip web01.example.com php
+# mark a node as WIP
+% knife node wip web01.example.com testing php build
+Created WIP "wip:dschauenberg:testing php build" for node web01.example.com.
 
-knife node unwip web01.example.com
+# show all nodes that are marked as WIP
+% knife wip list
+1 nodes found with work in progress
 
+web01.example.com: dschauenberg:testing php build
+
+# remove the WIP tag
+% knife node unwip web01.example.com testing php build
+Deleted WIP description "wip:dschauenberg:testing php build" for node web01.example.com.
 ```
-
 
 
 ## Installation
