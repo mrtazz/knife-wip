@@ -5,8 +5,28 @@ module KnifeWip
 
   class NodeWip < Chef::Knife
 
+    deps do
+      require 'chef/node'
+    end
+
+    banner "knife node wip NODE DESCRIPTION"
+
     def run
-      puts "lol WIP"
+      name = @name_args[0]
+      description = @name_args[1..-1]
+
+      if name.nil? || description.nil? || description.empty?
+        show_usage
+        ui.fatal("You must specify a node name and a description of what you are working on.")
+        exit 1
+      end
+
+      wip_tag = "wip:#{ENV["USER"]}:#{description.join(" ")}"
+
+      node = Chef::Node.load name
+      node.tags << wip_tag
+      node.save
+      ui.info("Created WIP #{wip_tag} for node #{name}.")
     end
 
   end
@@ -29,6 +49,8 @@ module KnifeWip
     end
 
     include Chef::Knife::Core::NodeFormattingOptions
+
+    banner "knife wip list"
 
     def run
       q = Chef::Search::Query.new
