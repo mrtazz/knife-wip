@@ -1,9 +1,91 @@
 require 'chef/knife'
 require 'chef/knife/core/node_presenter'
+require 'app_conf'
 
 module KnifeWip
 
+  # Public: collection namespace for some helper functions and methods
+  module Helpers
+
+    # Public: load all plugins that are configured
+    #
+    # this method merely tries to require the plugin files, instantiates an
+    # object from them and then stores it in @plugins. That way the knife
+    # commands can just call all plugins however they want from there.
+    #
+    # Returns nothing
+    def load_plugins
+
+      @plugins ||= []
+
+
+      app_config[:plugins].each do |plugin|
+        begin
+          require "knife-wip/plugins/#{plugin["name"].downcase}"
+          # apparently this is the way to dynamically instantiate ruby objects
+          @plugins << KnifeWip::Plugins.const_get(plugin["name"].capitalize).new(plugin)
+        rescue LoadError
+          ui.warn "Configured plugin '#{plugin["name"]}' doesn't exist."
+        end
+
+      end
+
+    end
+
+    # Public: get the configuration loaded from the yaml files
+    #
+    # Returns the appconf object with config loaded
+    def app_config
+      return @app_config unless @app_config.nil?
+
+      @app_config = ::AppConf.new
+      load_paths = []
+      # first look for configuration in the cookbooks folder
+      #load_paths << File.expand_path("#{cookbook_path.gsub('cookbooks','')}/config/knife-wip-config.yml")
+      # or see if we are in the cookbooks repo
+      load_paths << File.expand_path('config/knife-wip-config.yml')
+      # global config in /etc has higher priority
+      load_paths << '/etc/knife-wip-config.yml'
+      # finally the user supplied config file is loaded
+      load_paths << File.expand_path('~/.chef/knife-wip-config.yml')
+
+      # load all the paths
+      load_paths.each do |load_path|
+        if File.exists?(load_path)
+          ui.info "loading #{load_path}"
+          @app_config.load(load_path)
+        end
+      end
+
+      @app_config
+    end
+
+  end
+
+  # Public: class to inherit from for plugins. Basically a cheap hack to get
+  # some control over whether or not a plugin implements the correct methods
+  class Plugin
+    include ::KnifeWip::Helpers
+
+    def initialize(config)
+      @config = config
+    end
+
+    def wip_start(user, tag, node)
+      ui.warn "Warning: #{self.class} doesn't implement the 'wip_start' method."
+      ui.warn "No announcements performed for #{self.class}"
+    end
+
+    def wip_stop(user, tag, node)
+      ui.warn "Warning: #{self.class} doesn't implement the 'wip_stop' method."
+      ui.warn "No announcements performed for #{self.class}"
+    end
+
+  end
+
+
   class NodeWip < Chef::Knife
+    include KnifeWip::Helpers
 
     deps do
       require 'chef/node'
@@ -21,12 +103,17 @@ module KnifeWip
         exit 1
       end
 
+      load_plugins
+
       wip_tag = "wip:#{ENV["USER"]}:#{description.join(" ")}"
 
       node = Chef::Node.load name
         (node.tags << wip_tag).uniq!
       node.save
       ui.info("Created WIP \"#{wip_tag}\" for node #{name}.")
+      @plugins.each do |plugin|
+        plugin.wip_start(ENV["USER"], wip_tag, name)
+      end
     end
 
   end
@@ -60,6 +147,9 @@ module KnifeWip
         message = "Deleted WIP description \"#{tag}\" for node #{name}."
       end
       ui.info(message)
+      @plugins.each do |plugin|
+        plugin.wip_stop(ENV["USER"], wip_tag, name)
+      end
     end
 
   end
