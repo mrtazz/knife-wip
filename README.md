@@ -44,6 +44,59 @@ web01.example.com: dschauenberg:testing php build
 Deleted WIP description "wip:dschauenberg:testing php build" for node web01.example.com.
 ```
 
+## Plugins
+knife-wip has a plugin system that makes it possible to perform custom actions
+when work is started or stopped.
+
+
+### Configuration format
+knife-wip reads its configuration from different files in the following order:
+
+- `$COOKBOOKPATH/config/knife-wip-config.yml`
+- `config/knife-wip-config.yml`
+- `/etc/knife-wip-config.yml`
+- `~/.chef/knife-wip-config.yml`
+
+And the file should be YAML and look something like this:
+
+```
+plugins:
+  irccat:
+    server: irccat.example.com
+    port: 12345
+    channels:
+      - "#chef"
+```
+
+The key of the plugin configuration is what knife-wip uses to try and load the
+corresponding ruby file under `lib/knife-wip/plugins`. So it needs to exist
+there first.
+
+### Plugin format
+A simple plugin just needs to inherit from `KnifeWip::Plugin` and implement
+the two methods `wip_start` and `wip_stop`. Those methods get passed in the
+user, tag and node for the command that was performed. When the plugin gets
+instantiated it also gets its configuration from the config file passed in and
+it's available as the `@config` instance variable in there.
+
+```
+module KnifeWip
+  module Plugins
+    class LolFormatter < KnifeWip::Plugin
+
+      def wip_start(user, tag, node)
+      end
+
+      def wip_stop(user, tag, node)
+      end
+
+
+    end
+  end
+end
+```
+
+
 
 ## Installation
 
