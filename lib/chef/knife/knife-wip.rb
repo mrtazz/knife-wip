@@ -18,14 +18,13 @@ module KnifeWip
 
       @plugins ||= []
 
-
-      app_config[:plugins].each do |plugin|
+      app_config[:plugins].to_hash.each do |plugin, plugin_config|
         begin
-          require "knife-wip/plugins/#{plugin["name"].downcase}"
+          require "knife-wip/plugins/#{plugin.downcase}"
           # apparently this is the way to dynamically instantiate ruby objects
-          @plugins << KnifeWip::Plugins.const_get(plugin["name"].capitalize).new(plugin)
+          @plugins << KnifeWip::Plugins.const_get(plugin.capitalize).new(plugin_config)
         rescue LoadError
-          ui.warn "Configured plugin '#{plugin["name"]}' doesn't exist."
+          ui.warn "Configured plugin '#{plugin}' doesn't exist."
         end
 
       end
@@ -52,7 +51,6 @@ module KnifeWip
       # load all the paths
       load_paths.each do |load_path|
         if File.exists?(load_path)
-          ui.info "loading #{load_path}"
           @app_config.load(load_path)
         end
       end
@@ -112,7 +110,7 @@ module KnifeWip
       node.save
       ui.info("Created WIP \"#{wip_tag}\" for node #{name}.")
       @plugins.each do |plugin|
-        plugin.wip_start(ENV["USER"], wip_tag, name)
+        plugin.wip_start(ENV["USER"], description.join(" "), name)
       end
     end
 
@@ -148,7 +146,7 @@ module KnifeWip
       end
       ui.info(message)
       @plugins.each do |plugin|
-        plugin.wip_stop(ENV["USER"], wip_tag, name)
+        plugin.wip_stop(ENV["USER"], description, name)
       end
     end
 
