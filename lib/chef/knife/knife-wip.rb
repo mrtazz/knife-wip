@@ -117,6 +117,7 @@ module KnifeWip
   end
 
   class NodeUnwip < Chef::Knife
+    include KnifeWip::Helpers
 
     deps do
       require 'chef/node'
@@ -134,6 +135,8 @@ module KnifeWip
         exit 1
       end
 
+      load_plugins
+
       node = Chef::Node.load name
       tag = "wip:#{ENV["USER"]}:#{description}"
       success = node.tags.delete(tag).nil? ? false : true
@@ -143,11 +146,11 @@ module KnifeWip
         message = "Nothing has changed. The WIP description requested to be deleted does not exist."
       else
         message = "Deleted WIP description \"#{tag}\" for node #{name}."
+        @plugins.each do |plugin|
+          plugin.wip_stop(ENV["USER"], description, name)
+        end
       end
       ui.info(message)
-      @plugins.each do |plugin|
-        plugin.wip_stop(ENV["USER"], description, name)
-      end
     end
 
   end
