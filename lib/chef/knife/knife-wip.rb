@@ -40,7 +40,7 @@ module KnifeWip
       @app_config = ::AppConf.new
       load_paths = []
       # first look for configuration in the cookbooks folder
-      #load_paths << File.expand_path("#{cookbook_path.gsub('cookbooks','')}/config/knife-wip-config.yml")
+      load_paths << File.expand_path("#{cookbook_path.gsub('cookbooks','')}/config/knife-wip-config.yml")
       # or see if we are in the cookbooks repo
       load_paths << File.expand_path('config/knife-wip-config.yml')
       # global config in /etc has higher priority
@@ -56,6 +56,19 @@ module KnifeWip
       end
 
       @app_config
+    end
+
+    def ensure_cookbook_path!
+      if config[:cookbook_path].nil?
+        ui.fatal "No default cookbook_path; Specify with -o or fix your knife.rb."
+        show_usage
+        exit(1)
+      end
+    end
+
+    def cookbook_path
+      ensure_cookbook_path!
+      [config[:cookbook_path] ||= ::Chef::Config.cookbook_path].flatten[0]
     end
 
   end
@@ -101,6 +114,8 @@ module KnifeWip
         exit 1
       end
 
+      self.config = Chef::Config.merge!(config)
+
       load_plugins
 
       wip_tag = "wip:#{ENV["USER"]}:#{description.join(" ")}"
@@ -134,6 +149,8 @@ module KnifeWip
         ui.fatal("You must specify a node name and a WIP description.")
         exit 1
       end
+
+      self.config = Chef::Config.merge!(config)
 
       load_plugins
 
